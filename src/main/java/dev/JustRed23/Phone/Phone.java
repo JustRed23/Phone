@@ -1,8 +1,7 @@
 package dev.JustRed23.Phone;
 
-import dev.JustRed23.App.AppLoader;
-import dev.JustRed23.App.PhoneApp;
-import dev.JustRed23.App.SimpleAppManager;
+import dev.JustRed23.App.App;
+import dev.JustRed23.App.AppManager;
 
 import java.io.File;
 import java.util.logging.Level;
@@ -11,31 +10,30 @@ import java.util.logging.Logger;
 public class Phone {
 
     private static final Logger mainLogger = Logger.getLogger(Phone.class.getCanonicalName());
-    private static SimpleAppManager simpleAppManager = new SimpleAppManager();
+    public static String protectedPackage = "dev.JustRed23.";
+
+    private static AppManager manager = new AppManager();
 
     public static void main(String[] args) {
         mainLogger.info("Starting up...");
         loadApps();
+        mainLogger.info("Loaded " + manager.getApps().length + " app(s) successfully");
     }
 
     private static void loadApps() {
-        simpleAppManager.registerInterface(AppLoader.class);
-
         File appFolder = new File("D:\\Apps\\");
 
         if (appFolder.exists()) {
-            PhoneApp[] apps = simpleAppManager.loadApps(appFolder);
-            for (PhoneApp app : apps) {
+            for (App app : manager.loadApps(appFolder)) {
                 try {
-                    String message = String.format("Loading %s", app.getDescription().getFullName());
-                    app.getLogger().info(message);
+                    app.getLogger().info("Loading " + app.getDescription().getFullName());
                     app.onLoad();
-                } catch (Throwable ex) {
-                    mainLogger.log(Level.SEVERE, ex.getMessage() + " initializing " + app.getDescription().getFullName() + " (Is it up to date?)", ex);
+                } catch (Throwable e) {
+                    mainLogger.log(Level.SEVERE, "An error occurred while initializing " + app.getDescription().getFullName(), e);
                 }
             }
         } else {
-            appFolder.mkdir();
+            mainLogger.warning("Directory " + appFolder + " does not exist. Creating...");
         }
     }
 

@@ -2,6 +2,7 @@ package dev.JustRed23.App;
 
 import com.google.common.collect.ImmutableList;
 import dev.JustRed23.Exceptions.InvalidDescriptionException;
+import dev.JustRed23.Phone.Phone;
 import org.jetbrains.annotations.NotNull;
 import org.yaml.snakeyaml.Yaml;
 
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class AppDescriptionFile {
+public class AppDescription {
 
     private final Pattern VALID_NAME = Pattern.compile("^[A-Za-z0-9 _.-]+$");
 
@@ -24,14 +25,14 @@ public class AppDescriptionFile {
 
     private static final Yaml YAML = new Yaml();
 
-    public AppDescriptionFile(InputStream stream) throws InvalidDescriptionException {
+    public AppDescription(InputStream stream) throws InvalidDescriptionException {
         loadMap(asMap(YAML.load(stream)));
     }
 
     private void loadMap(Map<?, ?> map) throws InvalidDescriptionException {
         String name = getObjectFromMap(map, "name");
         if (!VALID_NAME.matcher(name).matches())
-            throw new InvalidDescriptionException("name '" + name + "' contains invalid characters");
+            throw new InvalidDescriptionException("Name '" + name + "' contains invalid characters");
         appName = name;
 
         appVersion = getObjectFromMap(map, "version");
@@ -40,11 +41,10 @@ public class AppDescriptionFile {
         if (map.get("contributors") != null) {
             ImmutableList.Builder<String> contributorsBuilder = ImmutableList.builder();
             try {
-                for (Object o : (Iterable<?>) map.get("contributors")) {
+                for (Object o : (Iterable<?>) map.get("contributors"))
                     contributorsBuilder.add(o.toString());
-                }
             } catch (ClassCastException ex) {
-                throw new InvalidDescriptionException(ex, "contributors are of wrong type");
+                throw new InvalidDescriptionException(ex, "Contributors are of wrong type");
             }
             appContributors = contributorsBuilder.build();
         } else {
@@ -52,8 +52,8 @@ public class AppDescriptionFile {
         }
 
         String main = getObjectFromMap(map, "mainClass");
-        if (main.startsWith("dev.JustRed23."))
-            throw new InvalidDescriptionException("the main class may not be within the dev.JustRed23 namespace");
+        if (main.startsWith(Phone.protectedPackage))
+            throw new InvalidDescriptionException("The main class may not be within the dev.JustRed23 namespace");
         mainClass = main;
     }
 

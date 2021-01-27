@@ -6,7 +6,6 @@ import dev.JustRed23.Phone.Phone;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -14,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.JarEntry;
@@ -23,91 +21,80 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 public class AppLoader {
+
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final Map<String, Class<?>> classes = new ConcurrentHashMap<>();
     private final List<AppClassLoader> loaders = new CopyOnWriteArrayList<>();
 
     public AppLoader() {}
 
-    @NotNull
-    public PhoneApp loadApp(@NotNull final File file) throws InvalidAppException {
-        Validate.notNull(file, "File cannot be null");
+    public App loadApp(@NotNull final File jarFile) throws InvalidAppException {
+        Validate.notNull(jarFile, "Jar file cannot be null");
 
-        if (!file.exists()) {
-            throw new InvalidAppException(new FileNotFoundException(file.getPath() + " does not exist"));
-        }
+        if (!jarFile.exists())
+            throw new InvalidAppException(new FileNotFoundException(jarFile.getPath() + " does not exist"));
 
-        final AppDescriptionFile description;
+        final AppDescription description;
         try {
-            description = getPluginDescription(file);
-        } catch (InvalidDescriptionException ex) {
-            throw new InvalidAppException(ex);
+            description = getDescription(jarFile);
+        } catch (InvalidDescriptionException e) {
+            throw new InvalidAppException(e);
         }
 
-        final File parentFile = file.getParentFile();
-        final File dataFolder = new File(parentFile, description.getAppName());
+        final File parentDir = jarFile.getParentFile();
+        final File dataFolder = new File(parentDir, description.getAppName());
 
-        if (dataFolder.exists() && !dataFolder.isDirectory()) {
-            throw new InvalidAppException(String.format(
-                    "Projected datafolder: `%s' for %s (%s) exists and is not a directory",
-                    dataFolder,
-                    description.getFullName(),
-                    file
-            ));
-        }
+        if (dataFolder.exists() && !dataFolder.isDirectory())
+            throw new InvalidAppException(String.format("'%s' for %s (%s) exists and is not a directory", dataFolder, description.getFullName(), jarFile));
 
         final AppClassLoader loader;
         try {
-            loader = new AppClassLoader(this, getClass().getClassLoader(), description, dataFolder, file);
-        } catch (InvalidAppException ex) {
-            throw ex;
-        } catch (Throwable ex) {
-            throw new InvalidAppException(ex);
+            loader = new AppClassLoader(this, getClass().getClassLoader(), description, dataFolder, jarFile);
+        } catch (InvalidAppException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new InvalidAppException(e);
         }
 
         loaders.add(loader);
 
-        return loader.phoneApp;
+        return loader.app;
     }
 
     @NotNull
-    public AppDescriptionFile getPluginDescription(@NotNull File file) throws InvalidDescriptionException {
+    public AppDescription getDescription(@NotNull File file) throws InvalidDescriptionException {
         Validate.notNull(file, "File cannot be null");
 
-        JarFile jar = null;
-        InputStream stream = null;
+        JarFile jarFile = null;
+        InputStream is = null;
 
         try {
-            jar = new JarFile(file);
-            JarEntry entry = jar.getJarEntry("app.yml");
+            jarFile = new JarFile(file);
+            JarEntry entry = jarFile.getJarEntry("app.yml");
 
             if (entry == null)
                 throw new InvalidDescriptionException(new FileNotFoundException("Jar does not contain app.yml"));
 
-            stream = jar.getInputStream(entry);
+            is = jarFile.getInputStream(entry);
 
-            return new AppDescriptionFile(stream);
-
-        } catch (IOException ex) {
-            throw new InvalidDescriptionException(ex);
+            return new AppDescription(is);
+        } catch (IOException e) {
+            throw new InvalidDescriptionException(e);
         } finally {
-            if (jar != null) {
+            if (jarFile != null)
                 try {
-                    jar.close();
-                } catch (IOException e) {
-                }
-            }
-            if (stream != null) {
+                    jarFile.close();
+                } catch (IOException ignored) {}
+
+            if (is != null)
                 try {
-                    stream.close();
-                } catch (IOException e) {
-                }
-            }
+                    is.close();
+                } catch (IOException ignored) {}
         }
     }
 
     @NotNull
-    public Pattern[] getPluginFileFilters() {
+    public Pattern[] getFileFilters() {
         return fileFilters.clone();
     }
 
@@ -115,13 +102,14 @@ public class AppLoader {
     Class<?> getClassByName(final String name) {
         Class<?> cachedClass = classes.get(name);
 
-        if (cachedClass != null) {
+        if (cachedClass != null)
             return cachedClass;
-        } else {
+        else {
             for (AppClassLoader loader : loaders) {
                 try {
                     cachedClass = loader.findTheClass(name);
-                } catch (ClassNotFoundException cnfe) {}
+                } catch (ClassNotFoundException ignored) {}
+
                 if (cachedClass != null)
                     return cachedClass;
             }
@@ -129,38 +117,33 @@ public class AppLoader {
         return null;
     }
 
-    public void enableApp(@NotNull final PhoneApp phoneApp) {
-        if (!phoneApp.isEnabled()) {
-            phoneApp.getLogger().info("Enabling " + phoneApp.getDescription().getFullName());
+    public void enableApp(@NotNull final App app) {
+        if (!app.isEnabled()) {
+            app.getLogger().info("Enabling " + app.getDescription().getFullName());
 
-            PhoneApp phoneApp1 = phoneApp;
-
-            AppClassLoader appClassLoader = (AppClassLoader) phoneApp1.getClassLoader();
+            AppClassLoader appClassLoader = (AppClassLoader) app.getClassLoader();
 
             if (!loaders.contains(appClassLoader)) {
                 loaders.add(appClassLoader);
-                Phone.getLogger().log(Level.WARNING, "Enabled app with unregistered AppClassLoader " + phoneApp.getDescription().getFullName());
+                Phone.getLogger().warning("Enabled app with unregistered AppClassLoader " + app.getDescription().getFullName());
             }
 
             try {
-                phoneApp1.setEnabled(true);
-            } catch (Throwable ex) {
-                Phone.getLogger().log(Level.SEVERE, "Error occurred while enabling " + phoneApp.getDescription().getFullName() + " (Is it up to date?)", ex);
+                app.setEnabled(true);
+            } catch (Throwable e) {
+                Phone.getLogger().log(Level.SEVERE, "An error occurred while enabling " + app.getDescription().getFullName(), e);
             }
         }
     }
 
-    public void disableApp(@NotNull PhoneApp phoneApp) {
-        if (phoneApp.isEnabled()) {
-            String message = String.format("Disabling %s", phoneApp.getDescription().getFullName());
-            phoneApp.getLogger().info(message);
-
-            PhoneApp phoneApp1 = phoneApp;
+    public void disableApp(@NotNull final App app) {
+        if (app.isEnabled()) {
+            app.getLogger().info("Disabling " + app.getDescription().getFullName());
 
             try {
-                phoneApp1.setEnabled(false);
-            } catch (Throwable ex) {
-                Phone.getLogger().log(Level.SEVERE, "Error occurred while disabling " + phoneApp.getDescription().getFullName() + " (Is it up to date?)", ex);
+                app.setEnabled(false);
+            } catch (Throwable e) {
+                Phone.getLogger().log(Level.SEVERE, "An error occurred while disabling " + app.getDescription().getFullName(), e);
             }
         }
     }

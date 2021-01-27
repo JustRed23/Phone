@@ -8,18 +8,18 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 public class AppLogger extends Logger {
+
     private String appName;
 
-    public AppLogger(@NotNull PhoneApp context) {
-        super(context.getClass().getCanonicalName(), null);
-        appName = "[" + context.getDescription().getAppName() + "] ";
+    public AppLogger(@NotNull App app) {
+        super(app.getClass().getCanonicalName(), null);
+        appName = "[" + app.getDescription().getAppName() + "] ";
         setParent(Phone.getLogger());
         setLevel(Level.ALL);
     }
 
-    @Override
-    public void log(@NotNull LogRecord logRecord) {
-        logRecord.setMessage(appName + logRecord.getMessage());
-        super.log(logRecord);
+    public void log(@NotNull LogRecord record) {
+        record.setMessage(appName + record.getMessage());
+        super.log(record);
     }
 }
