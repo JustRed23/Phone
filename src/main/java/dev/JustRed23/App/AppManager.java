@@ -58,13 +58,13 @@ public class AppManager {
             try {
                 description = loader.getDescription(file);
             } catch (InvalidDescriptionException e) {
-                Phone.getLogger().log(Level.SEVERE, "Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'", e);
+                Phone.getLogger().error("Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'", e);
                 continue;
             }
 
             File replacedFile = apps.put(description.getAppName(), file);
             if (replacedFile != null)
-                Phone.getLogger().severe(String.format("Ambiguous app name `%s' for files `%s' and `%s' in `%s'", description.getAppName(), file.getPath(), replacedFile.getPath(), directory.getPath()));
+                Phone.getLogger().error(String.format("Ambiguous app name `%s' for files `%s' and `%s' in `%s'", description.getAppName(), file.getPath(), replacedFile.getPath(), directory.getPath()));
         }
 
         while (!apps.isEmpty()) {
@@ -83,9 +83,9 @@ public class AppManager {
                         result.add(loadedApp);
                         loadedApps.add(loadedApp.getDescription().getAppName());
                     } else
-                        Phone.getLogger().log(Level.SEVERE, "Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'");
+                        Phone.getLogger().error("Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'");
                 } catch (InvalidAppException e) {
-                    Phone.getLogger().log(Level.SEVERE, "Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'", e);
+                    Phone.getLogger().error("Could not load '" + file.getPath() + "' in folder '" + directory.getPath() + "'", e);
                 }
             }
         }
@@ -144,7 +144,7 @@ public class AppManager {
             try {
                 app.getLoader().enableApp(app);
             } catch (Throwable e) {
-                Phone.getLogger().log(Level.SEVERE, "An error occurred (in the app loader) while enabling " + app.getDescription().getFullName(), e);
+                Phone.getLogger().error("An error occurred (in the app loader) while enabling " + app.getDescription().getFullName(), e);
             }
         }
     }
@@ -159,7 +159,7 @@ public class AppManager {
             try {
                 app.getLoader().disableApp(app);
             } catch (Throwable e) {
-                Phone.getLogger().log(Level.SEVERE, "An error occurred (in the app loader) while disabling " + app.getDescription().getFullName(), e);
+                Phone.getLogger().error("An error occurred (in the app loader) while disabling " + app.getDescription().getFullName(), e);
             }
     }
 }

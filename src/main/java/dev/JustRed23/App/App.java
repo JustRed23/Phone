@@ -4,11 +4,12 @@ import com.google.common.base.Charsets;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.logging.Logger;
 
 public class App {
 
@@ -18,7 +19,7 @@ public class App {
     private AppDescription description;
     private File dataFolder;
     private ClassLoader classLoader;
-    private AppLogger logger;
+    private Logger logger;
 
     public App() {
         final ClassLoader classLoader = this.getClass().getClassLoader();
@@ -104,7 +105,7 @@ public class App {
         this.description = description;
         this.dataFolder = dataFolder;
         this.classLoader = classLoader;
-        this.logger = new AppLogger(this);
+        this.logger = LoggerFactory.getLogger(this.getClass().getCanonicalName());
     }
 
     public void onLoad() {}

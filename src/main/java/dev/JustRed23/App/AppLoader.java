@@ -125,13 +125,13 @@ public class AppLoader {
 
             if (!loaders.contains(appClassLoader)) {
                 loaders.add(appClassLoader);
-                Phone.getLogger().warning("Enabled app with unregistered AppClassLoader " + app.getDescription().getFullName());
+                Phone.getLogger().warn("Enabled app with unregistered AppClassLoader " + app.getDescription().getFullName());
             }
 
             try {
                 app.setEnabled(true);
             } catch (Throwable e) {
-                Phone.getLogger().log(Level.SEVERE, "An error occurred while enabling " + app.getDescription().getFullName(), e);
+                Phone.getLogger().error("An error occurred while enabling " + app.getDescription().getFullName(), e);
             }
         }
     }
@@ -143,7 +143,7 @@ public class AppLoader {
             try {
                 app.setEnabled(false);
             } catch (Throwable e) {
-                Phone.getLogger().log(Level.SEVERE, "An error occurred while disabling " + app.getDescription().getFullName(), e);
+                Phone.getLogger().error("An error occurred while disabling " + app.getDescription().getFullName(), e);
             }
         }
     }

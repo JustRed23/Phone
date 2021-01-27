@@ -38,6 +38,10 @@ public class AppClassLoader extends URLClassLoader {
     final App app;
     private boolean isInitialized;
 
+    static {
+        AppClassLoader.registerAsParallelCapable();
+    }
+
     AppClassLoader(@NotNull final AppLoader loader, @Nullable final ClassLoader parent, @Nullable final AppDescription description, @NotNull final File dataFolder, @NotNull final File jarFile) throws IOException, InvalidAppException {
         super(new URL[] {jarFile.toURI().toURL()}, parent);
 
@@ -118,7 +122,7 @@ public class AppClassLoader extends URLClassLoader {
                             if (manifest != null)
                                 definePackage(packageName, manifest, url);
                             else
-                                definePackage(packageName, null, null);
+                                definePackage(packageName, null, null, null, null, null, null, null);
                         } catch (IllegalArgumentException e) {
                             if (getPackage(packageName) == null)
                                 throw new IllegalStateException(String.format("Cannot find package %s", packageName));
