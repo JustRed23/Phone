@@ -26,7 +26,7 @@ public class Phone {
         if (appFolder.exists()) {
             for (App app : manager.loadApps(appFolder)) {
                 try {
-                    app.getLogger().info("Loading " + app.getDescription().getFullName());
+                    mainLogger.info("Loading " + app.getDescription().getFullName());
                     app.onLoad();
                 } catch (Throwable e) {
                     mainLogger.error("An error occurred while initializing " + app.getDescription().getFullName(), e);
